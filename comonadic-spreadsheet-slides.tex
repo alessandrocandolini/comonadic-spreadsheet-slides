@@ -62,23 +62,13 @@
   \tableofcontents[hideallsubsections]
 \end{frame}
 
-\section{Warm up}
+\section{Comonads}
 \begin{frame}[fragile]
-  \frametitle{Placeholder Example}
-  \begin{lstlisting}[language=scala]
-    sealed trait Result[+A]
-    case object Loading extends Result[Nothng]
-    case class  Error(s : String) extends Result[Nothing]
-    case class Success[+A](a : A) extends Result[A]
-
-    def f[A] : Option[A] => Result[A] = {
-      case Some(a) => Success(a)
-      case _       => Error("invalid")
-    }
-  \end{lstlisting}
 \end{frame}
 
+\section{Spreadsheet-like computations from comonads}
 
+\section{Final remarks}
 \plain{Questions?}
 
 %\begin{frame}[allowframebreaks] {References}
@@ -88,6 +78,10 @@
 
 \end{document}
 %% Useful for copy pasting. Would be better to just have snippets
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  \end{lstlisting}
+\end{frame}
 \begin{frame}[fragile]
   \frametitle{}
   \begin{lstlisting}[language=scala, basicstyle=\ttfamily]
