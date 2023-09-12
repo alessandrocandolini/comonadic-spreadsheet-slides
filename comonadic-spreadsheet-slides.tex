@@ -521,10 +521,16 @@ instance Comonad Sheet1 where
       allLeft = iterate moveL
       allRight = iterate moveR
 \end{lstlisting}
+  Duplicate is ``diagonalisation'' (as with other comonads derived from zippers) 
 \end{frame}
 \begin{frame}[fragile]
-  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-  \end{lstlisting}
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+naturals :: Sheet1 Integer
+naturals = sheet 0 (repeat (cell left + 1))
+
+
+
+\end{lstlisting}
 \end{frame}
 
 \begin{frame}[fragile]
