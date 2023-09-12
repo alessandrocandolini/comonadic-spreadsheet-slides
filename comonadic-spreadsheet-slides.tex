@@ -315,7 +315,7 @@
      coreturn :: f a -> a 
      cojoin :: f a -> f ( f a ) 
   \end{lstlisting}
-  (and, as usual, there are impprtant laws) 
+  (and, as usual, there are important laws) 
 \end{frame}
 
 \begin{frame}[fragile]
@@ -328,7 +328,7 @@
   coFlatMap :: Comonad w => (w a -> b) -> w a -> w b
   coFlatMap f = fmap f . duplicate
   \end{lstlisting}
-  (and, as usual, there are impprtant laws) 
+  (and, as usual, there are important laws) 
 \end{frame}
 
 
@@ -385,25 +385,178 @@ coFlatMap f [1,2,3] `shouldBe`
 \end{frame}
 
 \begin{frame}[fragile]
-  Simple moving average
-\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-{-# LANGUAGE OverloadedLists #-}
-
-sma :: Int -> NonEmpty Int -> [Double]
-
-sma 3 [1,2,3,4,5,6,7,8,9,10] `shouldBe`
-   [2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0]
-  \end{lstlisting}
-because 
-  \begin{itemize}
-
-
+  Simple moving average of a time series $[\phi_{1}, \ldots, \phi_{N}]$ with window size $k$ at the time $t$ is
+  \begin{equation} 
+    SMA_{k}(t) = \frac{1}{k} \sum_{j = t - k + 1}^{t} \phi_{j}
+  \end{equation}
 \end{frame}
 
 
+\begin{frame}[fragile]
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+{-# LANGUAGE OverloadedLists #-}
+
+sma :: Window -> NonEmpty Int -> [Double]
+
+sma 3 [1,2,3,4,5,6,7,8,9,10] `shouldBe`
+   [2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0]
+\end{lstlisting}
+because 
+\begin{itemize}
+   \item  
+     $(1+2+3) / 3 = 6/3 = 2$
+    \item $(2+3+4) / 3 = 9/3 = 3$
+    \item $(3+4+5) / 3 = 12/3 = 4$
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+smaLocal :: Window -> NonEmpty Double 
+   -> Maybe Double
+smaLocal k s = (/ (fromIntegral k)) <$>
+        sumK k s
+
+sumFirstK :: Num a => 
+   Window -> NonEmpty a -> Maybe a
+sumFirstK (Window k) _ | k <= 0 = Nothing
+sumFirstK (Window 1) (MyNonEmpty a _) = Just a
+sumFirstK k (MyNonEmpty a as) = 
+   case nonEmpty as of
+     Just as2 -> (+a) <$> sumFirstK (k-1) as
+     Nothing -> Nothing
+\end{lstlisting}
+\end{frame}
+\begin{frame}[fragile]
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+sma :: Window -> MyNonEmpty Double 
+         -> MyNonEmpty (Maybe Double)
+sma size = coFlatMap (smaLocal size)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{alertblock}{Folkloristic understanding of some comonads usages}
+    \begin{itemize}
+  \item the function passed to \verb|coFlatMap| represents a \emph{local} computation (can explore the ``neighbourhood'' of the focus point, but produces a single value) 
+  \item \verb|cojoin| produces a (lazy) view of the structure from all perspectives 
+  \item \verb|coFlatMap| applies the local computation to all perspectives 
+    \end{itemize}
+  \end{alertblock}
+\end{frame}
+\begin{frame}[fragile]
+  Similar examples:
+  \begin{itemize}
+    \item Numerical derivation
+    \item Reconciliation in a list of events
+    \item etc
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+  Interesting usages:
+  \begin{itemize}
+    \item Cellular automaton (\eg, Conway’s game of life)
+    \item Store, Moore machine and comonadic UIs
+  \end{itemize}
+\end{frame}
+
 \section{Comonadic vibes meet spreadsheets}
 
+\begin{frame}[fragile]
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  data Stream a = Stream a (Stream a)
+    deriving (Eq, Show,Functor)
+
+  iterate :: (a -> a) -> a 
+    -> Stream a
+  iterate f seed = 
+    Stream seed (iterate f (f seed))  
+  
+  instance Comonad Stream where
+     extract (Stream a _) = a
+     duplicate s'@(Stream _ as) = 
+       Stream s' (duplicate as)
+  
+\end{lstlisting}
+\end{frame}
+\begin{frame}[fragile]
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  iterate :: (a -> a) -> a 
+    -> Stream a
+  iterate f seed = 
+    Stream seed (iterate f (f seed))  
+\end{lstlisting}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+data Sheet1 = Sheet1 (Stream a) a (Stream a)
+   deriving (Eq,Show, Functor)
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  focus :: Sheet1 a -> a
+  focus (Sheet1 _ a _ ) = a
+
+  moveL :: Sheet1 a -> Sheet1 a
+  moveL (Sheet1 (Stream a as) focus s) 
+     = Sheet1 as a (Stream focus s)
+  
+  moveR :: Sheet1 a -> Sheet1 a
+  moveR (Sheet1 s focus (Stream a as)) 
+     = Sheet1 (Stream focus s) a as
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+instance Comonad Sheet1 where
+  extract = focus
+  duplicate s = 
+    Sheet1 (allLeft s) s (allRight s) where 
+      allLeft = iterate moveL
+      allRight = iterate moveR
+\end{lstlisting}
+\end{frame}
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  \end{lstlisting}
+\end{frame}
+
+
 \section{Down the rabbit hole}
+
+\begin{frame}[fragile]
+\begin{figure}
+    \centering
+    \includegraphics[width=.9\textwidth]{examples}
+  \end{figure}
+\end{frame}
+
 
 \begin{frame}[fragile]
   About comonads:
