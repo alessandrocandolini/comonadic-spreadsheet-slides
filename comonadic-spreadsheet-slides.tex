@@ -575,24 +575,30 @@ instance Comonad Sheet1 where
   \end{figure}
 \end{frame}
 
+\section{Down the rabbit hole}
+
+
 \begin{frame}[fragile]
-  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-  \end{lstlisting}
+  Next steps
+  \begin{itemize}
+    \item build helper functions (aka, DSL) to build a spreadsheet
+    \item generalise to multiple dimensions 
+  \end{itemize}
 \end{frame}
 
 \begin{frame}[fragile]
-  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-  \end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
+  Something along the lines of 
 \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-naturals :: Sheet1 Integer
-naturals = sheet 0 (repeat (cell left + 1))
+naturalsSheet :: Sheet1 (Sheet1 Int -> Int) 
+naturalsSheet = sheet 0 (repeat (cell left + 1))
+
+naturals :: Sheet1 Int 
+naturals = evaluate naturalSheet 
+
+evaluate = kfix 
 \end{lstlisting}
 \end{frame}
 
-\section{Down the rabbit hole}
 
 \begin{frame}[fragile]
 \begin{figure}
