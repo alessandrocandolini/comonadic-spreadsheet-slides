@@ -468,11 +468,6 @@ sma size = coFlatMap (smaLocal size)
   data Stream a = Stream a (Stream a)
     deriving (Eq, Show,Functor)
 
-  iterate :: (a -> a) -> a 
-    -> Stream a
-  iterate f seed = 
-    Stream seed (iterate f (f seed))  
-  
   instance Comonad Stream where
      extract (Stream a _) = a
      duplicate s'@(Stream _ as) = 
@@ -480,17 +475,32 @@ sma size = coFlatMap (smaLocal size)
   
 \end{lstlisting}
 \end{frame}
+
 \begin{frame}[fragile]
 \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
   iterate :: (a -> a) -> a 
     -> Stream a
   iterate f seed = 
     Stream seed (iterate f (f seed))  
+
+  takeN :: Int -> Stream a -> [a] 
+  takeN 0 _ = [] 
+  takeN n (Stream a as) = a : takeN n as 
+\end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  naturals :: Stream Imt
+  naturals = iterate (+1) 0 
+
+  takeN 10 naturals `shouldBe` [0,1,2,3,4,5,6,7,8,9]
 \end{lstlisting}
 \end{frame}
 
 
 \begin{frame}[fragile]
+  One-dimensional, bidirectional, homogeneous spreadsheet of type $a$
 \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
 data Sheet1 = Sheet1 (Stream a) a (Stream a)
    deriving (Eq,Show, Functor)
@@ -523,36 +533,64 @@ instance Comonad Sheet1 where
 \end{lstlisting}
   Duplicate is ``diagonalisation'' (as with other comonads derived from zippers) 
 \end{frame}
+
+
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  naturalsSheet1 :: Sheet1 Int
+  naturalsSheet1 = Sheet1 (constS 0) 0 naturals
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  We are looking for sheets of functions:
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  sheet :: Num a => Sheet1 (Sheet1 a -> a)
+  \end{lstlisting}
+  and the evaluate function should look like 
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  evaluate :: Num a => Sheet1 (Sheet1 a -> a) 
+    -> Sheet1 a 
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  Comonadic fixed-points at rescue%
+  \footnote{Why \texttt{ComonadApply}? We need some ``zippiness'', see references at the end}
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  kfix :: ComonadApply w => w ( w a -> a ) -> w a 
+  \end{lstlisting}
+  %where
+  %\begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  %class ComonadApply w where 
+    %(<@>) :: w ( a -> b) -> w a -> w b 
+  %\end{lstlisting}
+
+\end{frame}
+\begin{frame}[fragile]
+  \begin{figure}
+    \centering
+    \includegraphics[width=.7\textwidth]{kfix}
+    \caption{Kenneth fixed point for \texttt{ComonadApply}}
+  \end{figure}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  \end{lstlisting}
+\end{frame}
+
+\begin{frame}[fragile]
+  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
+  \end{lstlisting}
+\end{frame}
+
 \begin{frame}[fragile]
 \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
 naturals :: Sheet1 Integer
 naturals = sheet 0 (repeat (cell left + 1))
-
-
-
 \end{lstlisting}
 \end{frame}
-
-\begin{frame}[fragile]
-  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-  \end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
-  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-  \end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
-  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-  \end{lstlisting}
-\end{frame}
-
-\begin{frame}[fragile]
-  \begin{lstlisting}[language=haskell, basicstyle=\ttfamily]
-  \end{lstlisting}
-\end{frame}
-
 
 \section{Down the rabbit hole}
 

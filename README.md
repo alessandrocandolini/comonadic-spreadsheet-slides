@@ -1,6 +1,6 @@
 # comonadic-spreadsheet-slides
 
-Fill description
+Latex slides for a talk about comonads and spreadsheet-like computations 
 
 ## Run
 
